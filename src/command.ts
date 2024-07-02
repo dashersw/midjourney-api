@@ -55,6 +55,13 @@ export class Command {
 
     const data = await response.json()
 
+    if (data?.message?.includes('You are being rate limited')) {
+      console.log(`Rate limited, waiting for ${data?.retry_after} seconds before retrying allCommand()`)
+
+      await sleep(data?.retry_after * 1000)
+      await this.allCommand()
+    }
+
     if (data?.application_commands) {
       data.application_commands.forEach((command: any) => {
         const name = getCommandName(command.name)
