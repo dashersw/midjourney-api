@@ -44,7 +44,7 @@ export class MidjourneyApi extends Command {
     await sleep(this.config.ApiInterval)
   }
   private queue = async.queue(this.processRequest, 1)
-  private interactions = async (payload: any) => {
+  private interactions = async (payload: any): Promise<any> => {
     try {
       const headers = {
         'Content-Type': 'application/json',
@@ -60,6 +60,18 @@ export class MidjourneyApi extends Command {
           payload: JSON.stringify(payload),
           config: this.config
         })
+
+        // if headers include retry-after, repeat this call after the time specified
+        if (response.headers && response.headers.get('retry-after')) {
+          console.log(
+            'Rate limited, waiting for',
+            response.headers.get('retry-after'),
+            'seconds before retrying interactions'
+          )
+
+          await sleep(Number(response.headers.get('retry-after')) * 1000)
+          return this.interactions(payload)
+        }
       }
       return response.status
     } catch (error) {
